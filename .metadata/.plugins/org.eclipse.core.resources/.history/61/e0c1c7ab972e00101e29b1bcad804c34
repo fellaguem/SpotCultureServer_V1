@@ -33,7 +33,7 @@ public class EventServlet extends HttpServlet {
 
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM events")) {
+             ResultSet rs = stmt.executeQuery("SELECT * FROM events limit 20")) {
 
             out.println("[");
             boolean first = true;
