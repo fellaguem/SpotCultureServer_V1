@@ -1,6 +1,7 @@
 package com.spotculture.servlets;
 
 import com.spotculture.utils.DBConnection;
+import com.spotculture.utils.PasswordUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -13,94 +14,82 @@ import java.sql.*;
 public class UserServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
-    // GET : Lister tous les utilisateurs
+    // GET: Liste des commentaires d’un événement
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        String user_id = request.getParameter("user_id");
         response.setContentType("application/json");
         PrintWriter out = response.getWriter();
 
+        if (user_id == null) {
+            response.setStatus(400);
+            out.println("{\"error\": \"Paramètre 'event_id' manquant\"}");
+            return;
+        }
+
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, username, email, created_at FROM users")) {
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM users WHERE id = ?")) {
 
-            out.println("[");
-            boolean first = true;
+            stmt.setInt(1, Integer.parseInt(user_id));
+            ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) {
-                if (!first) out.println(",");
-                out.print("  {");
+            if (rs.next()) {
+                out.print("{");
                 out.print("\"id\": " + rs.getInt("id") + ", ");
-                out.print("\"username\": \"" + rs.getString("username") + "\", ");
-                out.print("\"email\": \"" + rs.getString("email") + "\", ");
-                out.print("\"created_at\": \"" + rs.getTimestamp("created_at") + "\"");
+                out.print("\"name\": \"" + rs.getString("name").replace("\"", "\\\"") + "\", ");
+                out.print("\"firstname\": \"" + rs.getString("firstname").replace("\"", "\\\"") + "\", ");
+                out.print("\"email\": \"" + rs.getString("email").replace("\"", "\\\"") + "\"");
                 out.print("}");
-                first = false;
+            } else {
+                response.setStatus(404);
+                out.print("{\"error\": \"Utilisateur non trouvé\"}");
             }
 
-            out.println("\n]");
         } catch (SQLException e) {
             response.setStatus(500);
             out.println("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
-
+    
     // POST : Ajouter un utilisateur
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String username = request.getParameter("username");
-        String email = request.getParameter("email");
-        String passwordHash = request.getParameter("password_hash");
 
-        if (username == null || email == null || passwordHash == null) {
-            response.setStatus(400);
-            response.getWriter().println("{\"error\": \"Paramètres requis : username, email, password_hash\"}");
-            return;
-        }
+    	String name = request.getParameter("name");
+    	String firstname = request.getParameter("firstname");
+    	String email = request.getParameter("email");
+    	String password = request.getParameter("password_hash");
+    	
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, NOW())")) {
+    	if (name == null || firstname == null || email == null || password == null) {
+    	    response.setStatus(400);
+    	    response.getWriter().println("{\"error\": \"Paramètres requis : name, firstname, email, password_hash\"}");
+    	    return;
+    	}
+    	
+    	String passwordHash = PasswordUtil.hashPassword(password);
 
-            stmt.setString(1, username);
-            stmt.setString(2, email);
-            stmt.setString(3, passwordHash);
+    	try (Connection conn = DBConnection.getConnection();
+    		     PreparedStatement stmt = conn.prepareStatement(
+    		         "INSERT INTO users (name, firstname, email, password_hash, created_at) VALUES (?, ?, ?, ?, NOW())")) {
 
-            int rows = stmt.executeUpdate();
-            response.getWriter().println("{\"status\": \"Utilisateur ajouté (" + rows + " ligne(s))\"}");
+    		    stmt.setString(1, name);
+    		    stmt.setString(2, firstname);
+    		    stmt.setString(3, email);
+    		    stmt.setString(4, passwordHash);
 
-        } catch (SQLException e) {
-            response.setStatus(500);
-            response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
-        }
-    }
+    		    int rows = stmt.executeUpdate();
+    		    response.getWriter().println("{\"status\": \"Utilisateur ajouté (" + rows + " ligne(s))\"}");
 
-    // DELETE : Supprimer un utilisateur
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    		} catch (SQLException e) {
+    		    response.setStatus(500);
+    		    response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
+    		}
 
-        String idParam = request.getParameter("id");
-        if (idParam == null) {
-            response.setStatus(400);
-            response.getWriter().println("{\"error\": \"Paramètre 'id' manquant\"}");
-            return;
-        }
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("DELETE FROM users WHERE id = ?")) {
-
-            stmt.setInt(1, Integer.parseInt(idParam));
-            int rows = stmt.executeUpdate();
-            response.getWriter().println("{\"status\": \"Utilisateur supprimé (" + rows + " ligne(s))\"}");
-
-        } catch (SQLException e) {
-            response.setStatus(500);
-            response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
-        }
     }
 
     // PUT : Modifier l’email ou le mot de passe

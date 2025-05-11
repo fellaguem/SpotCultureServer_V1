@@ -33,7 +33,7 @@ public class EventServlet extends HttpServlet {
 
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM events")) {
+             ResultSet rs = stmt.executeQuery("SELECT * FROM events limit 20")) {
 
             out.println("[");
             boolean first = true;
@@ -111,86 +111,4 @@ public class EventServlet extends HttpServlet {
         }
     }
 
-    // PUT: Modifier un événement
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        BufferedReader reader = request.getReader();
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null)
-            sb.append(line);
-
-        String[] params = sb.toString().split("&");
-        int id = 0;
-        String apiId = "", title = "", description = "", location = "", dateStart = "", dateEnd = "", leadText = "", coverUrl = "";
-
-        for (String param : params) {
-            String[] pair = param.split("=");
-            String key = pair[0];
-            String value = pair.length > 1 ? pair[1].replace("+", " ") : "";
-
-            switch (key) {
-                case "id": id = Integer.parseInt(value); break;
-                case "api_id": apiId = value; break;
-                case "title": title = value; break;
-                case "description": description = value; break;
-                case "location": location = value; break;
-                case "date_start": dateStart = value; break;
-                case "date_end": dateEnd = value; break;
-                case "lead_text": leadText = value; break;
-                case "cover_url": coverUrl = value; break;
-            }
-        }
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "UPDATE events SET api_id=?, title=?, description=?, location=?, date_start=?, date_end=?, lead_text=?, cover_url=? WHERE id=?")) {
-
-            stmt.setString(1, apiId);
-            stmt.setString(2, title);
-            stmt.setString(3, description);
-            stmt.setString(4, location);
-            stmt.setString(5, dateStart);
-            stmt.setString(6, dateEnd);
-            stmt.setString(7, leadText);
-            stmt.setString(8, coverUrl);
-            stmt.setInt(9, id);
-
-            int rows = stmt.executeUpdate();
-            response.getWriter().println("{\"status\": \"Événement mis à jour (" + rows + " ligne(s))\"}");
-
-        } catch (SQLException e) {
-            response.setStatus(500);
-            response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
-        }
-    }
-
-    // DELETE: Supprimer un événement
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String idParam = request.getParameter("id");
-        if (idParam == null) {
-            response.setStatus(400);
-            response.getWriter().println("{\"error\": \"Paramètre 'id' manquant\"}");
-            return;
-        }
-
-        int id = Integer.parseInt(idParam);
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("DELETE FROM events WHERE id = ?")) {
-
-            stmt.setInt(1, id);
-            int rows = stmt.executeUpdate();
-            response.getWriter().println("{\"status\": \"Événement supprimé (" + rows + " ligne(s))\"}");
-
-        } catch (SQLException e) {
-            response.setStatus(500);
-            response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
-        }
-    }
 }

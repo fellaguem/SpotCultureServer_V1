@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.sql.*;
 
 import com.spotculture.utils.DBConnection;
+import com.spotculture.utils.PasswordUtil;
 
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
@@ -20,9 +21,10 @@ public class LoginServlet extends HttpServlet {
             throws ServletException, IOException {
         resp.setContentType("application/json");
         String email = req.getParameter("email");
-        String pwd   = req.getParameter("password_hash");
+        String password   = req.getParameter("password_hash");
+    	String passwordHash = PasswordUtil.hashPassword(password);
 
-        if (email == null || pwd == null) {
+        if (email == null || passwordHash == null) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().println("{\"error\":\"Paramètres requis : email, password_hash\"}");
             return;
@@ -42,7 +44,7 @@ public class LoginServlet extends HttpServlet {
                     }
                     String storedHash = rs1.getString("password_hash");
                     // 2️⃣ Vérifier le mot de passe
-                    if (!pwd.equals(storedHash)) {
+                    if (!passwordHash.equals(storedHash)) {
                         resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         resp.getWriter().println("{\"error\":\"Mot de passe incorrect\"}");
                         return;
@@ -51,15 +53,15 @@ public class LoginServlet extends HttpServlet {
             }
             // 3️⃣ Si on arrive ici, l'utilisateur existe ET le mot de passe est OK
             try (PreparedStatement ps = conn.prepareStatement(
-                     "SELECT id, username, email, created_at FROM users WHERE email = ?")) {
+                     "SELECT id, name, firstname, email, created_at FROM users WHERE email = ?")) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         // Renvoie l'objet JSON de l'utilisateur
                         resp.getWriter().printf(
-                          "{\"id\":%d,\"username\":\"%s\",\"email\":\"%s\",\"created_at\":\"%s\"}",
+                          "{\"id\":%d,\"name\":\"%s\",\"email\":\"%s\",\"created_at\":\"%s\"}",
                           rs.getInt("id"),
-                          rs.getString("username"),
+                          rs.getString("name"),
                           rs.getString("email"),
                           rs.getTimestamp("created_at").toString()
                         );

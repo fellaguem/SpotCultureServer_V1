@@ -1,0 +1,115 @@
+package com.spotculture.servlets;
+
+import com.spotculture.utils.DBConnection;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+
+import java.io.*;
+import java.sql.*;
+
+@WebServlet("/favorites")
+public class FavoriteServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String userIdParam = request.getParameter("user_id");
+        String eventIdParam = request.getParameter("event_id");
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+
+        if (userIdParam == null || eventIdParam == null) {
+            response.setStatus(400);
+            out.println("{\"error\": \"Paramètres 'user_id' et 'event_id' requis\"}");
+            return;
+        }
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 "SELECT * FROM favorites WHERE user_id = ? AND event_id = ?")) {
+
+            stmt.setInt(1, Integer.parseInt(userIdParam));
+            stmt.setInt(2, Integer.parseInt(eventIdParam));
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                out.println("{");
+                out.println("\"user_id\": " + rs.getInt("user_id") + ",");
+                out.println("\"event_id\": " + rs.getInt("event_id") + ",");
+                out.println("\"created_at\": \"" + rs.getTimestamp("created_at") + "\"");
+                out.println("}");
+            } else {
+                response.setStatus(404);
+                out.println("{\"message\": \"Favori non trouvé\"}");
+            }
+
+        } catch (SQLException e) {
+            response.setStatus(500);
+            out.println("{\"error\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    
+    // POST : Ajouter un favori
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String userId = request.getParameter("user_id");
+        String eventId = request.getParameter("event_id");
+
+        if (userId == null || eventId == null) {
+            response.setStatus(400);
+            response.getWriter().println("{\"error\": \"Paramètres requis : user_id, event_id\"}");
+            return;
+        }
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "INSERT INTO favorites (user_id, event_id, created_at) VALUES (?, ?, NOW())")) {
+
+            stmt.setInt(1, Integer.parseInt(userId));
+            stmt.setInt(2, Integer.parseInt(eventId));
+
+            int rows = stmt.executeUpdate();
+            response.getWriter().println("{\"status\": \"Favori ajouté (" + rows + " ligne(s))\"}");
+
+        } catch (SQLException e) {
+            response.setStatus(500);
+            response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    // DELETE : Retirer un favori
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String userId = request.getParameter("user_id");
+        String eventId = request.getParameter("event_id");
+
+        if (userId == null || eventId == null) {
+            response.setStatus(400);
+            response.getWriter().println("{\"error\": \"Paramètres requis : user_id, event_id\"}");
+            return;
+        }
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "DELETE FROM favorites WHERE user_id = ? AND event_id = ?")) {
+
+            stmt.setInt(1, Integer.parseInt(userId));
+            stmt.setInt(2, Integer.parseInt(eventId));
+
+            int rows = stmt.executeUpdate();
+            response.getWriter().println("{\"status\": \"Favori supprimé (" + rows + " ligne(s))\"}");
+
+        } catch (SQLException e) {
+            response.setStatus(500);
+            response.getWriter().println("{\"error\": \"" + e.getMessage() + "\"}");
+        }
+    }
+}

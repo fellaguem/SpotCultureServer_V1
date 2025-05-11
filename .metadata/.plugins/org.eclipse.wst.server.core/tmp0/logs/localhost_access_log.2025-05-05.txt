@@ -22,3 +22,7 @@
 127.0.0.1 - - [05/May/2025:21:17:32 +0200] "GET /SpotCultureServer_V1/import-paris-events HTTP/1.1" 200 61
 127.0.0.1 - - [05/May/2025:21:17:52 +0200] "GET /SpotCultureServer_V1/import-paris-events HTTP/1.1" 200 61
 0:0:0:0:0:0:0:1 - - [05/May/2025:21:18:16 +0200] "POST /SpotCultureServer_V1/login HTTP/1.1" 200 114
+0:0:0:0:0:0:0:1 - - [05/May/2025:21:27:21 +0200] "POST /SpotCultureServer_V1/login HTTP/1.1" 401 35
+0:0:0:0:0:0:0:1 - - [05/May/2025:21:27:32 +0200] "POST /SpotCultureServer_V1/login HTTP/1.1" 404 36
+0:0:0:0:0:0:0:1 - - [05/May/2025:21:40:59 +0200] "POST /SpotCultureServer_V1/login HTTP/1.1" 404 36
+0:0:0:0:0:0:0:1 - - [05/May/2025:21:41:02 +0200] "POST /SpotCultureServer_V1/login HTTP/1.1" 200 114

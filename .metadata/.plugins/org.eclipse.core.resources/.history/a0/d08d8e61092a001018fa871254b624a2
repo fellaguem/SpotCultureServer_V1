@@ -1,0 +1,5 @@
+package com.spotculture.utils;
+
+public class PasswordUtil {
+
+}
